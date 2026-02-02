@@ -1,0 +1,110 @@
+/* Tipografía profesional */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+* {
+    box-sizing: border-box;
+    font-family: 'Roboto', sans-serif;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: 
+        linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
+        url('img/puerto-de-embarque-al-atardecer-carga-aviones-y-camiones.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    color: #fff;
+}
+
+/* Contenedor principal */
+.container {
+    max-width: 1100px;
+    margin: auto;
+    padding: 30px;
+}
+
+/* Título */
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 2.4rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+}
+
+/* Formularios y bloques */
+form, .bloque {
+    background: rgba(255, 255, 255, 0.2); /* 20% opaco */
+    color: #333;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 25px;
+}
+
+/* Labels */
+label {
+    display: block;
+    margin-top: 12px;
+    font-weight: 500;
+}
+
+/* Inputs */
+input, select {
+    width: 100%;
+    padding: 8px 10px;
+    margin-top: 5px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+/* Botones */
+button {
+    margin-top: 15px;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    background-color: #0d6efd;
+    color: #fff;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+button:hover {
+    background-color: #084298;
+}
+
+/* Tablas */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+table th {
+    background-color: #0d6efd;
+    color: white;
+    padding: 10px;
+}
+
+table td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* Botón eliminar */
+table button {
+    background-color: #dc3545;
+}
+
+table button:hover {
+    background-color: #a71d2a;
+}
+
+/* Títulos de producto */
+h3 {
+    margin-top: 30px;
+    color: #0d6efd;
+}
