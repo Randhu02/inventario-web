@@ -32,6 +32,7 @@ h1 {
     font-size: 2.4rem;
     font-weight: 500;
     letter-spacing: 1px;
+    color: #fff;
 }
 
 /* Formularios y bloques */
@@ -48,6 +49,7 @@ label {
     display: block;
     margin-top: 12px;
     font-weight: 500;
+    color: #fff;
 }
 
 /* Inputs */
@@ -57,6 +59,7 @@ input, select {
     margin-top: 5px;
     border-radius: 6px;
     border: 1px solid #ccc;
+    background: rgba(255, 255, 255, 0.9);
 }
 
 /* Botones */
@@ -81,6 +84,7 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 15px;
+    background: rgba(255, 255, 255, 0.9);
 }
 
 table th {
@@ -92,11 +96,13 @@ table th {
 table td {
     padding: 8px;
     border-bottom: 1px solid #ddd;
+    color: #333;
 }
 
 /* Botón eliminar */
 table button {
     background-color: #dc3545;
+    margin-top: 0;
 }
 
 table button:hover {
@@ -107,4 +113,223 @@ table button:hover {
 h3 {
     margin-top: 30px;
     color: #0d6efd;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 5px;
+    display: inline-block;
+}
+
+/* ========== ESTILOS PARA LOGIN ========== */
+
+.login-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.login-box {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 2.5rem;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 450px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    border: 2px solid #0d6efd;
+}
+
+.login-box h2 {
+    margin-top: 0;
+    color: #0d6efd;
+    text-align: center;
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+}
+
+.login-box p {
+    color: #333;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.login-box input {
+    width: 100%;
+    padding: 12px 15px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 1rem;
+    background: #fff;
+}
+
+.login-box input:focus {
+    outline: none;
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+}
+
+.login-box button {
+    width: 100%;
+    padding: 14px;
+    background: #0d6efd;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    margin: 10px 0;
+    transition: all 0.3s ease;
+}
+
+.login-box button:hover {
+    background: #084298;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.error-message {
+    color: #dc3545;
+    background: #f8d7da;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border: 1px solid #f5c6cb;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.login-info {
+    margin-top: 25px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.login-info p {
+    margin: 8px 0;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+.login-info strong {
+    color: #0d6efd;
+}
+
+#btnTestLogin {
+    background: #28a745;
+    margin-top: 15px;
+    width: 100%;
+}
+
+#btnTestLogin:hover {
+    background: #218838;
+}
+
+/* ========== BARRA DE USUARIO ========== */
+
+.user-bar {
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 12px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#userEmail {
+    font-weight: 500;
+    color: #0d6efd;
+}
+
+#btnLogout {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.3s ease;
+}
+
+#btnLogout:hover {
+    background: #a71d2a;
+}
+
+/* ========== ESTILOS ADICIONALES ========== */
+
+.permiso {
+    color: #6c757d;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+/* Títulos de sección */
+h2 {
+    color: #fff;
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    .login-box {
+        padding: 1.5rem;
+        margin: 15px;
+    }
+    
+    .user-bar {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+    }
+}
+
+/* Mensaje cuando no hay registros */
+#contenedorTablas p {
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+/* Ajuste para botones dentro de la tabla */
+table button {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+}
+
+/* Ajuste para formulario de inventario */
+#formContainer {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 25px;
+    border-radius: 10px;
+    margin-bottom: 30px;
 }

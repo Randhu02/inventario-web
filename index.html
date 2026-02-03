@@ -3,53 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <title>Ceres Peru SAC - Inventario</title>
-
-    <!-- CSS -->
     <link rel="stylesheet" href="estilos.css">
-
-    <!-- Firebase (compat v9) -->
+    
+    <!-- Firebase v9 compact -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
-<div class="container">
+<!-- FORMULARIO DE LOGIN (visible inicialmente) -->
+<div id="loginContainer" class="login-container" style="display: none;">
+    <div class="login-box">
+        <h2>Acceso al Inventario</h2>
+        <p><strong>Nota:</strong> Cualquiera puede ver los registros, pero solo usuarios autorizados pueden agregar o eliminar.</p>
+        
+        <form id="loginForm">
+            <input type="email" id="loginEmail" placeholder="Correo electrónico" required>
+            <input type="password" id="loginPassword" placeholder="Contraseña" required>
+            <button type="submit">Iniciar Sesión</button>
+        </form>
+        
+        <div id="loginError" class="error-message" style="display: none;"></div>
+        
+        <div class="login-info">
+            <p><strong>Para probar (si no tienes usuarios):</strong></p>
+            <p>Correo: admin@ceres.com</p>
+            <p>Contraseña: admin123</p>
+            <button id="btnTestLogin" type="button">Usar credenciales de prueba</button>
+        </div>
+    </div>
+</div>
+
+<!-- CONTENIDO PRINCIPAL (oculto inicialmente) -->
+<div id="mainContainer" class="container" style="display: none;">
+
+    <!-- Barra superior con info de usuario -->
+    <div class="user-bar">
+        <span id="userEmail">No autenticado</span>
+        <button id="btnLogout">Cerrar Sesión</button>
+    </div>
 
     <h1>Ceres Peru SAC - Inventario</h1>
 
-    <!-- FORMULARIO -->
-    <form id="formInventario">
+    <!-- FORMULARIO DE INVENTARIO (solo visible para usuarios logueados) -->
+    <div id="formContainer">
+        <h2>Agregar Nuevo Registro</h2>
+        <form id="formInventario">
+            <label>Descripción:</label>
+            <select id="descripcion" required>
+                <option value="">Seleccione</option>
+                <option>UREA FERTI * 50 KG.</option>
+                <option>FOSFATO DIAMONICO FERTI * 50 KG.</option>
+                <option>SULFATO DE AMONIO FERTI * 50 KG.</option>
+                <option>ADITIVO MARRON - BOLSAS * 20 KG.</option>
+                <option>NITRATO DE AMONIO * 50 KG.</option>
+                <option>NITRATO DE AMONIO * 50 KG. - POLIPROPILENO</option>
+                <option>CLORURO DE POTASIO *50 KG.</option>
+            </select>
 
-        <label>Descripción:</label>
-        <select id="descripcion" required>
-            <option value="">Seleccione</option>
-            <option>UREA FERTI * 50 KG.</option>
-            <option>FOSFATO DIAMONICO FERTI * 50 KG.</option>
-            <option>SULFATO DE AMONIO FERTI * 50 KG.</option>
-            <option>ADITIVO MARRON - BOLSAS * 20 KG.</option>
-            <option>NITRATO DE AMONIO * 50 KG.</option>
-            <option>NITRATO DE AMONIO * 50 KG. - POLIPROPILENO</option>
-            <option>CLORURO DE POTASIO *50 KG.</option>
-        </select>
+            <label>Fecha:</label>
+            <input type="date" id="fecha" required>
 
-        <label>Fecha:</label>
-        <input type="date" id="fecha" required>
+            <label>Operación:</label>
+            <input type="text" id="operacion" required>
 
-        <label>Operación:</label>
-        <input type="text" id="operacion" required>
+            <label>Ingreso:</label>
+            <input type="number" id="ingreso" value="0">
 
-        <label>Ingreso:</label>
-        <input type="number" id="ingreso" value="0">
+            <label>Salida:</label>
+            <input type="number" id="salida" value="0">
 
-        <label>Salida:</label>
-        <input type="number" id="salida" value="0">
+            <button type="submit">Agregar Registro</button>
+        </form>
+    </div>
 
-        <button type="submit">Agregar</button>
-    </form>
-
-    <!-- MOSTRAR TABLA -->
+    <!-- MOSTRAR TABLA (visible para todos) -->
     <div class="bloque">
-        <h3>Mostrar tabla por producto</h3>
+        <h3>Consultar Inventario</h3>
+        <p>Cualquier persona puede ver los registros seleccionando un producto:</p>
 
         <select id="productoFiltro">
             <option value="">Seleccione un producto</option>
@@ -62,8 +94,7 @@
             <option>CLORURO DE POTASIO *50 KG.</option>
         </select>
 
-        <!-- ⬇️ BOTÓN CORREGIDO -->
-        <button type="button" id="btnMostrar">Mostrar</button>
+        <button type="button" id="btnMostrar">Mostrar Tabla</button>
     </div>
 
     <div id="contenedorTablas"></div>
