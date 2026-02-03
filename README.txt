@@ -2,7 +2,7 @@ click derecho en carpeta de código y Abril terminal
 
 git init
 git add .
-git commit -m "Corrida - proyecto simulacion-web"
+git commit -m "Corrida - proyecto inventario-web"
 git remote add origin https://github.com/Randhu02/inventario-web.git
 git push -u origin main
 
