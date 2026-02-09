@@ -81,6 +81,8 @@ body {
     font-size: 1rem;
     font-weight: 500;
     transition: all 0.3s ease;
+    margin-top: 10px;
+    margin-bottom: 5px;
 }
 
 .btn-modo-vista {
@@ -198,7 +200,7 @@ body {
     cursor: pointer;
     font-size: 1rem;
     font-weight: 500;
-    margin: 10px 0;
+    margin: 10px 0 5px 0;
     transition: all 0.3s ease;
 }
 
@@ -234,6 +236,7 @@ body {
     font-weight: 500;
     transition: background 0.3s ease;
     width: 100%;
+    margin-top: 10px;
 }
 
 .btn-volver:hover {
@@ -293,6 +296,7 @@ h1 {
     cursor: pointer;
     font-weight: 500;
     transition: background 0.3s ease;
+    margin-right: 10px;
 }
 
 .btn-cambiar:hover {
@@ -312,6 +316,37 @@ h1 {
 
 #btnLogout:hover {
     background: #a71d2a;
+}
+
+/* ========== SEPARACIÓN MEJORADA ENTRE BOTONES ========== */
+
+/* Separación general para todos los botones */
+button {
+    margin-top: 15px;
+    margin-bottom: 5px;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    background-color: #0d6efd;
+    color: #fff;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    background-color: #084298;
+}
+
+/* Para botones consecutivos en la misma línea */
+button + button {
+    margin-left: 10px;
+}
+
+/* Botones en formularios principales */
+form button, .bloque button {
+    margin-top: 20px;
+    margin-bottom: 10px;
 }
 
 /* ========== FORMULARIO DE INVENTARIO ========== */
@@ -340,31 +375,21 @@ label {
     color: #fff;
 }
 
-/* Inputs */
-input, select {
+/* Inputs y textarea */
+input, select, textarea {
     width: 100%;
     padding: 8px 10px;
     margin-top: 5px;
     border-radius: 6px;
     border: 1px solid #ccc;
     background: rgba(255, 255, 255, 0.9);
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.95rem;
 }
 
-/* Botones */
-button {
-    margin-top: 15px;
-    padding: 10px 18px;
-    border: none;
-    border-radius: 6px;
-    background-color: #0d6efd;
-    color: #fff;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.3s ease;
-}
-
-button:hover {
-    background-color: #084298;
+textarea {
+    resize: vertical;
+    min-height: 60px;
 }
 
 /* Títulos de sección */
@@ -389,25 +414,15 @@ table th {
     background-color: #0d6efd;
     color: white;
     padding: 10px;
-    text-align: left;
+    text-align: center;
 }
 
 table td {
     padding: 8px;
     border-bottom: 1px solid #ddd;
     color: #333;
-}
-
-/* Botón eliminar */
-table button {
-    background-color: #dc3545;
-    margin-top: 0;
-    padding: 6px 12px;
-    font-size: 0.9rem;
-}
-
-table button:hover {
-    background-color: #a71d2a;
+    text-align: center;
+    vertical-align: middle;
 }
 
 /* Títulos de producto */
@@ -418,6 +433,63 @@ h3 {
     padding: 10px;
     border-radius: 5px;
     display: inline-block;
+}
+
+/* ========== BOTONES EN TABLA ========== */
+
+/* Botón Eliminar (rojo) - Mantener igual */
+table .btn-eliminar {
+    background-color: #dc3545 !important;
+    color: white !important;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    margin-top: 0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 70px;
+    text-align: center;
+    display: inline-block;
+}
+
+table .btn-eliminar:hover {
+    background-color: #a71d2a !important;
+    transform: translateY(-1px);
+}
+
+/* BOTÓN EDITAR TRANSPARENTE/OUTLINE (NUEVO) */
+table .btn-editar {
+    background-color: transparent !important;
+    color: #0d6efd !important;
+    border: 2px solid #0d6efd !important;
+    padding: 5px 10px;
+    font-size: 0.85rem;
+    margin-top: 0;
+    margin-right: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 70px;
+    text-align: center;
+    display: inline-block;
+}
+
+table .btn-editar:hover {
+    background-color: #0d6efd !important;
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
+}
+
+/* Separación entre botones en tabla */
+table td .btn-editar {
+    margin-right: 8px;
+    margin-bottom: 5px;
+}
+
+table td .btn-eliminar {
+    margin-bottom: 5px;
 }
 
 /* ========== MENSAJES INFORMATIVOS ========== */
@@ -468,73 +540,7 @@ h3 {
     font-size: 0.9rem;
 }
 
-/* ========== RESPONSIVE ========== */
-
-@media (max-width: 768px) {
-    .container {
-        padding: 15px;
-    }
-    
-    .modo-box, .login-box {
-        padding: 1.5rem;
-        margin: 15px;
-    }
-    
-    .user-bar {
-        flex-direction: column;
-        gap: 15px;
-        text-align: center;
-    }
-    
-    .user-bar > div {
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    h1 {
-        font-size: 1.8rem;
-    }
-    
-    .modo-opcion {
-        padding: 15px;
-    }
-}
-
-/* Mensaje cuando no hay registros */
-#contenedorTablas p {
-    color: #fff;
-    text-align: center;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    margin: 20px 0;
-}
-
-/* ========== ESTILOS PARA NUEVAS FUNCIONALIDADES ========== */
-
-/* Textarea para observaciones */
-textarea {
-    width: 100%;
-    padding: 8px 10px;
-    margin-top: 5px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    background: rgba(255, 255, 255, 0.9);
-    font-family: 'Roboto', sans-serif;
-    font-size: 0.95rem;
-    resize: vertical;
-    min-height: 60px;
-}
-
-/* Centrado de datos en tablas */
-table td {
-    text-align: center;
-    vertical-align: middle;
-}
-
-table th {
-    text-align: center;
-}
+/* ========== RESUMEN Y EXCEL ========== */
 
 /* Resaltar última fila de stock */
 .ultimo-stock {
@@ -591,21 +597,7 @@ table th {
     font-weight: 500;
 }
 
-/* Ajustes responsivos */
-@media (max-width: 768px) {
-    .resumen-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .btn-excel {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-
-/* ========== ESTILOS PARA MODAL DE EDITAR ========== */
+/* ========== MODAL DE EDITAR ========== */
 
 .modal {
     position: fixed;
@@ -672,6 +664,7 @@ table th {
 .modal-buttons button {
     flex: 1;
     margin-top: 0;
+    margin-bottom: 0;
 }
 
 .btn-guardar {
@@ -690,28 +683,73 @@ table th {
     background-color: #545b62 !important;
 }
 
-/* Botón Editar (amarillo) */
-.btn-editar {
-    background-color: #ffc107 !important;
-    color: #212529 !important;
-    margin-right: 5px;
+/* ========== RESPONSIVE ========== */
+
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    .modo-box, .login-box {
+        padding: 1.5rem;
+        margin: 15px;
+    }
+    
+    .user-bar {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .user-bar > div {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .user-bar button {
+        width: 100%;
+        margin-right: 0 !important;
+        margin-left: 0 !important;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+    }
+    
+    .modo-opcion {
+        padding: 15px;
+    }
+    
+    .resumen-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .btn-excel {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Botones en tabla en columna en móviles */
+    table td .btn-editar, 
+    table td .btn-eliminar {
+        display: block;
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 8px;
+    }
+    
+    table td .btn-eliminar {
+        margin-bottom: 0;
+    }
 }
 
-.btn-editar:hover {
-    background-color: #e0a800 !important;
-}
-
-/* Para botones en tabla */
-table .btn-editar {
-    padding: 5px 10px;
-    font-size: 0.85rem;
-    margin-top: 0;
-    margin-right: 5px;
-}
-
-/* Asegurar que los botones en tabla sean del mismo tamaño */
-table .btn-editar, 
-table .btn-eliminar {
-    width: 70px;
+/* Mensaje cuando no hay registros */
+#contenedorTablas p {
+    color: #fff;
     text-align: center;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    margin: 20px 0;
 }

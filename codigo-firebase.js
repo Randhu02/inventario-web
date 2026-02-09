@@ -363,7 +363,7 @@ function mostrarTabla() {
         const tabla = document.createElement("table");
         tabla.border = "1";
         
-        // Cabecera de tabla
+        // Cabecera de tabla (SIN columna Usuario)
         let cabecera = `
             <thead>
                 <tr>
@@ -379,7 +379,7 @@ function mostrarTabla() {
             cabecera += `<th>Acción</th>`;
         }
         
-        cabecera += `<th>Usuario</th></tr></thead><tbody></tbody>`;
+        cabecera += `</tr></thead><tbody></tbody>`;
         tabla.innerHTML = cabecera;
 
         const tbody = tabla.querySelector("tbody");
@@ -409,7 +409,7 @@ function mostrarTabla() {
                 </td>`;
             }
             
-            fila += `<td ${claseFila ? 'class="ultimo-stock"' : ''}>${item.usuario || 'N/A'}</td>`;
+            // NOTA: Se eliminó la columna Usuario completamente
             
             const tr = document.createElement("tr");
             if (claseFila) tr.className = claseFila;
