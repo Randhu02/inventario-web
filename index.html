@@ -12,11 +12,36 @@
 </head>
 <body>
 
-<!-- FORMULARIO DE LOGIN (visible inicialmente) -->
+<!-- PANTALLA DE INICIO - ELIGE MODO -->
+<div id="inicioContainer" style="display: flex;">
+    <div class="modo-container">
+        <div class="modo-box">
+            <h2>Ceres Peru SAC - Inventario</h2>
+            
+            <div class="modo-opcion">
+                <h3>👁️ Modo Vista</h3>
+                <p>Solo para consultar el inventario. No se requiere login.</p>
+                <button id="btnModoVista" class="btn-modo-vista">Entrar como Visitante</button>
+            </div>
+            
+            <div class="separador">
+                <span>O</span>
+            </div>
+            
+            <div class="modo-opcion">
+                <h3>🔧 Modo Administrador</h3>
+                <p>Para agregar o eliminar registros. Requiere usuario y contraseña.</p>
+                <button id="btnModoAdmin" class="btn-modo-admin">Iniciar como Administrador</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FORMULARIO DE LOGIN (solo para modo admin) -->
 <div id="loginContainer" class="login-container" style="display: none;">
     <div class="login-box">
-        <h2>Acceso al Inventario</h2>
-        <p><strong>Nota:</strong> Cualquiera puede ver los registros, pero solo usuarios autorizados pueden agregar o eliminar.</p>
+        <h2>Acceso Administrador</h2>
+        <p>Ingresa tus credenciales para modificar el inventario.</p>
         
         <form id="loginForm">
             <input type="email" id="loginEmail" placeholder="Correo electrónico" required>
@@ -26,28 +51,31 @@
         
         <div id="loginError" class="error-message" style="display: none;"></div>
         
-        <div class="login-info">
-            <p><strong>Para probar (si no tienes usuarios):</strong></p>
-            <p>Correo: admin@ceres.com</p>
-            <p>Contraseña: admin123</p>
-            <button id="btnTestLogin" type="button">Usar credenciales de prueba</button>
+        <div class="login-options">
+            <button id="btnVolverInicio" class="btn-volver">← Volver a inicio</button>
         </div>
     </div>
 </div>
 
-<!-- CONTENIDO PRINCIPAL (oculto inicialmente) -->
+<!-- APLICACIÓN PRINCIPAL -->
 <div id="mainContainer" class="container" style="display: none;">
 
-    <!-- Barra superior con info de usuario -->
+    <!-- Barra superior con info del modo -->
     <div class="user-bar">
-        <span id="userEmail">No autenticado</span>
-        <button id="btnLogout">Cerrar Sesión</button>
+        <div>
+            <span id="userEmail">Modo: Visitante (Solo lectura)</span>
+            <span id="modoInfo"></span>
+        </div>
+        <div>
+            <button id="btnCambiarModo" class="btn-cambiar">Cambiar Modo</button>
+            <button id="btnLogout" style="display: none;">Cerrar Sesión</button>
+        </div>
     </div>
 
     <h1>Ceres Peru SAC - Inventario</h1>
 
-    <!-- FORMULARIO DE INVENTARIO (solo visible para usuarios logueados) -->
-    <div id="formContainer">
+    <!-- FORMULARIO DE INVENTARIO (solo visible en modo admin) -->
+    <div id="formContainer" style="display: none;">
         <h2>Agregar Nuevo Registro</h2>
         <form id="formInventario">
             <label>Descripción:</label>
@@ -81,7 +109,10 @@
     <!-- MOSTRAR TABLA (visible para todos) -->
     <div class="bloque">
         <h3>Consultar Inventario</h3>
-        <p>Cualquier persona puede ver los registros seleccionando un producto:</p>
+        
+        <div id="infoModo">
+            <!-- Mensaje dinámico según el modo -->
+        </div>
 
         <select id="productoFiltro">
             <option value="">Seleccione un producto</option>

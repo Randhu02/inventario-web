@@ -33,37 +33,80 @@ const productosItem = {
 
 // Variables globales
 let usuarioAutenticado = null;
+let modoActual = 'vista'; // 'vista' o 'admin'
 
-// ==================== FUNCIONES DE AUTENTICACIÓN ====================
+// ==================== FUNCIONES DE VISUALIZACIÓN ====================
+
+function mostrarInicio() {
+    document.getElementById('inicioContainer').style.display = 'flex';
+    document.getElementById('loginContainer').style.display = 'none';
+    document.getElementById('mainContainer').style.display = 'none';
+}
 
 function mostrarLogin() {
+    document.getElementById('inicioContainer').style.display = 'none';
     document.getElementById('loginContainer').style.display = 'flex';
     document.getElementById('mainContainer').style.display = 'none';
 }
 
-function mostrarApp() {
+function mostrarApp(modo) {
+    modoActual = modo;
+    document.getElementById('inicioContainer').style.display = 'none';
     document.getElementById('loginContainer').style.display = 'none';
     document.getElementById('mainContainer').style.display = 'block';
+    
+    actualizarInterfazSegunModo();
 }
 
-// Verificar estado de autenticación al cargar
-auth.onAuthStateChanged((user) => {
-    if (user) {
-        // Usuario autenticado
-        usuarioAutenticado = user;
-        document.getElementById('userEmail').textContent = `Usuario: ${user.email}`;
-        mostrarApp();
+function actualizarInterfazSegunModo() {
+    const userEmail = document.getElementById('userEmail');
+    const formContainer = document.getElementById('formContainer');
+    const btnLogout = document.getElementById('btnLogout');
+    const btnCambiar = document.getElementById('btnCambiarModo');
+    const infoModo = document.getElementById('infoModo');
+    
+    if (modoActual === 'admin' && usuarioAutenticado) {
+        // MODO ADMINISTRADOR
+        userEmail.textContent = `Modo: Administrador (${usuarioAutenticado.email})`;
+        formContainer.style.display = 'block';
+        btnLogout.style.display = 'inline-block';
+        btnCambiar.textContent = 'Cambiar a Modo Vista';
+        btnCambiar.style.background = '#6c757d';
         
-        // Mostrar formulario de inventario
-        document.getElementById('formContainer').style.display = 'block';
+        infoModo.innerHTML = `
+            <div class="admin-message">
+                ✅ <strong>Estás en modo Administrador</strong><br>
+                Puedes agregar nuevos registros y eliminar existentes.
+            </div>
+        `;
         
-        console.log("Usuario autenticado:", user.email);
     } else {
-        // Usuario no autenticado
-        usuarioAutenticado = null;
-        mostrarLogin();
+        // MODO VISTA (SOLO LECTURA)
+        userEmail.textContent = 'Modo: Visitante (Solo lectura)';
+        formContainer.style.display = 'none';
+        btnLogout.style.display = 'none';
+        btnCambiar.textContent = 'Cambiar a Modo Admin';
+        btnCambiar.style.background = '#0d6efd';
         
-        console.log("Usuario no autenticado");
+        infoModo.innerHTML = `
+            <div class="vista-message">
+                👁️ <strong>Estás en modo Vista</strong><br>
+                Solo puedes consultar el inventario. Para agregar o eliminar registros, 
+                cambia a Modo Administrador e ingresa tus credenciales.
+            </div>
+        `;
+    }
+}
+
+// ==================== AUTENTICACIÓN ====================
+
+// Verificar si hay usuario logueado al cargar
+auth.onAuthStateChanged((user) => {
+    usuarioAutenticado = user;
+    
+    // Si hay usuario logueado y estamos en modo admin, mostrar app
+    if (user && modoActual === 'admin') {
+        mostrarApp('admin');
     }
 });
 
@@ -72,7 +115,24 @@ auth.onAuthStateChanged((user) => {
 document.addEventListener("DOMContentLoaded", function() {
     console.log("DOM completamente cargado");
     
-    // 1. Formulario de Login
+    // 1. Botón Modo Vista (sin login)
+    document.getElementById("btnModoVista").addEventListener("click", function() {
+        modoActual = 'vista';
+        usuarioAutenticado = null;
+        mostrarApp('vista');
+    });
+    
+    // 2. Botón Modo Admin (ir a login)
+    document.getElementById("btnModoAdmin").addEventListener("click", function() {
+        mostrarLogin();
+    });
+    
+    // 3. Volver al inicio desde login
+    document.getElementById("btnVolverInicio").addEventListener("click", function() {
+        mostrarInicio();
+    });
+    
+    // 4. Formulario de Login
     document.getElementById("loginForm").addEventListener("submit", function(e) {
         e.preventDefault();
         
@@ -82,7 +142,8 @@ document.addEventListener("DOMContentLoaded", function() {
         auth.signInWithEmailAndPassword(email, password)
             .then(() => {
                 document.getElementById("loginError").style.display = 'none';
-                alert("Inicio de sesión exitoso");
+                modoActual = 'admin';
+                mostrarApp('admin');
             })
             .catch((error) => {
                 document.getElementById("loginError").textContent = error.message;
@@ -90,28 +151,35 @@ document.addEventListener("DOMContentLoaded", function() {
             });
     });
     
-    // 2. Botón de prueba
-    document.getElementById("btnTestLogin").addEventListener("click", function() {
-        document.getElementById("loginEmail").value = "admin@ceres.com";
-        document.getElementById("loginPassword").value = "admin123";
-        
-        // Auto-enviar el formulario
-        document.getElementById("loginForm").dispatchEvent(new Event('submit'));
-    });
-    
-    // 3. Botón de Logout
-    document.getElementById("btnLogout").addEventListener("click", function() {
-        if (confirm("¿Cerrar sesión?")) {
+    // 5. Botón Cambiar Modo
+    document.getElementById("btnCambiarModo").addEventListener("click", function() {
+        if (modoActual === 'admin') {
+            // Cambiar de admin a vista
             auth.signOut();
+            modoActual = 'vista';
+            usuarioAutenticado = null;
+            mostrarApp('vista');
+        } else {
+            // Cambiar de vista a admin (ir a login)
+            mostrarLogin();
         }
     });
     
-    // 4. Formulario de Inventario
+    // 6. Botón Logout
+    document.getElementById("btnLogout").addEventListener("click", function() {
+        if (confirm("¿Cerrar sesión de administrador?")) {
+            auth.signOut();
+            modoActual = 'vista';
+            mostrarApp('vista');
+        }
+    });
+    
+    // 7. Formulario de Inventario (solo funciona en modo admin)
     document.getElementById("formInventario").addEventListener("submit", function(e) {
         e.preventDefault();
         
-        if (!usuarioAutenticado) {
-            alert("Debe iniciar sesión para agregar registros");
+        if (modoActual !== 'admin' || !usuarioAutenticado) {
+            alert("Debe estar en modo Administrador para agregar registros");
             return;
         }
         
@@ -156,20 +224,17 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
-    // 5. Botón Mostrar Tabla
+    // 8. Botón Mostrar Tabla
     const btnMostrar = document.getElementById("btnMostrar");
     if (btnMostrar) {
         btnMostrar.addEventListener("click", mostrarTabla);
-        console.log("Evento click agregado al botón Mostrar");
-    } else {
-        console.error("ERROR: Botón 'btnMostrar' no encontrado");
     }
 });
 
 // ==================== FUNCIÓN MOSTRAR TABLA ====================
 
 function mostrarTabla() {
-    console.log("Función mostrarTabla() ejecutada");
+    console.log("Función mostrarTabla() ejecutada - Modo:", modoActual);
     
     const descripcion = document.getElementById("productoFiltro").value;
     const contenedor = document.getElementById("contenedorTablas");
@@ -187,11 +252,9 @@ function mostrarTabla() {
     }
 
     const itemProducto = productosItem[descripcion];
-    console.log("Buscando producto:", descripcion, "Item:", itemProducto);
 
     database.ref("inventario/" + itemProducto).once("value", snapshot => {
         const movimientos = snapshot.val();
-        console.log("Datos obtenidos de Firebase:", movimientos);
 
         if (!movimientos || movimientos.length === 0) {
             contenedor.innerHTML = "<p>No hay registros para este producto.</p>";
@@ -204,7 +267,9 @@ function mostrarTabla() {
 
         const tabla = document.createElement("table");
         tabla.border = "1";
-        tabla.innerHTML = `
+        
+        // Cabecera de tabla
+        let cabecera = `
             <thead>
                 <tr>
                     <th>Item</th>
@@ -213,41 +278,47 @@ function mostrarTabla() {
                     <th>Ingreso</th>
                     <th>Salida</th>
                     <th>Stock</th>
-                    <th>Usuario</th>
-                    <th>Acción</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        `;
+                    <th>Usuario</th>`;
+        
+        // Solo mostrar columna Acción en modo admin
+        if (modoActual === 'admin' && usuarioAutenticado) {
+            cabecera += `<th>Acción</th>`;
+        }
+        
+        cabecera += `</tr></thead><tbody></tbody>`;
+        tabla.innerHTML = cabecera;
 
         const tbody = tabla.querySelector("tbody");
 
         movimientos.forEach((item, index) => {
-            const fila = document.createElement("tr");
-            fila.innerHTML = `
+            let fila = `
                 <td>${item.item}</td>
                 <td>${item.fecha}</td>
                 <td>${item.operacion}</td>
                 <td>${item.ingreso}</td>
                 <td>${item.salida}</td>
                 <td>${item.stock}</td>
-                <td>${item.usuario || 'N/A'}</td>
+                <td>${item.usuario || 'N/A'}</td>`;
+            
+            // Solo mostrar botón eliminar en modo admin
+            if (modoActual === 'admin' && usuarioAutenticado) {
+                fila += `
                 <td>
-                    ${usuarioAutenticado ? 
-                        `<button class="btn-eliminar" data-item="${itemProducto}" data-index="${index}">
-                            Eliminar
-                        </button>` : 
-                        '<span class="permiso">Requiere login</span>'
-                    }
-                </td>
-            `;
-            tbody.appendChild(fila);
+                    <button class="btn-eliminar" data-item="${itemProducto}" data-index="${index}">
+                        Eliminar
+                    </button>
+                </td>`;
+            }
+            
+            const tr = document.createElement("tr");
+            tr.innerHTML = fila;
+            tbody.appendChild(tr);
         });
 
         contenedor.appendChild(tabla);
         
-        // Agregar eventos a los botones eliminar (solo si está autenticado)
-        if (usuarioAutenticado) {
+        // Agregar eventos a los botones eliminar (solo en modo admin)
+        if (modoActual === 'admin' && usuarioAutenticado) {
             document.querySelectorAll(".btn-eliminar").forEach(btn => {
                 btn.addEventListener("click", function() {
                     const itemProd = this.getAttribute("data-item");
@@ -262,8 +333,8 @@ function mostrarTabla() {
 // ==================== ELIMINAR REGISTRO ====================
 
 function eliminarRegistro(itemProducto, index) {
-    if (!usuarioAutenticado) {
-        alert("Debe iniciar sesión para eliminar registros");
+    if (modoActual !== 'admin' || !usuarioAutenticado) {
+        alert("Debe estar en modo Administrador para eliminar registros");
         return;
     }
     

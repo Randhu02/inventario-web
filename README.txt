@@ -12,11 +12,19 @@ remover carpeta
 Remove-Item -Path "C:\Users\Usuario\Desktop\PROYECTO TISUR\simulacion-web\imagenes" -Recurse -Force
 
 
-
-
-
-git init
 git add .
-git commit -m "Corrida - proyecto simulacion-web"
-git remote add origin https://github.com/Randhu02/simulacion01-web.git
-git push -u origin main
+git commit -m "Fix Firebase init duplication"
+git push
+
+
+
+usuario: admin@ceres.com
+contraseña: admin123
+
+
+
+admin@ceres.com / Admin123* (administrador)
+
+almacen@ceres.com / Almacen123* (personal de almacén)
+
+ventas@ceres.com / Ventas123* (personal de ventas)
