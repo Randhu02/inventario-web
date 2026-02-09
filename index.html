@@ -9,6 +9,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    
+    <!-- Librería para exportar a Excel -->
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -88,19 +91,26 @@
                 <option>NITRATO DE AMONIO * 50 KG.</option>
                 <option>NITRATO DE AMONIO * 50 KG. - POLIPROPILENO</option>
                 <option>CLORURO DE POTASIO *50 KG.</option>
+                <option>NITRO S PREMIUM AMARILLO * 50 KG</option>
+                <option>SUPER BLUE * 50 KG</option>
+                <option>NPK 20-20-20 * 50 KG</option>
+                <option>PAPA SIERRA * 50 KG</option>
             </select>
 
             <label>Fecha:</label>
             <input type="date" id="fecha" required>
 
             <label>Operación:</label>
-            <input type="text" id="operacion" required>
+            <input type="text" id="operacion" placeholder="Ej: Ingreso de almacén" required>
 
             <label>Ingreso:</label>
-            <input type="number" id="ingreso" value="0">
+            <input type="number" id="ingreso" value="0" min="0">
 
             <label>Salida:</label>
-            <input type="number" id="salida" value="0">
+            <input type="number" id="salida" value="0" min="0">
+
+            <label>Observaciones:</label>
+            <textarea id="observaciones" placeholder="Observaciones adicionales (opcional)" rows="3"></textarea>
 
             <button type="submit">Agregar Registro</button>
         </form>
@@ -123,12 +133,30 @@
             <option>NITRATO DE AMONIO * 50 KG.</option>
             <option>NITRATO DE AMONIO * 50 KG. - POLIPROPILENO</option>
             <option>CLORURO DE POTASIO *50 KG.</option>
+            <option>NITRO S PREMIUM AMARILLO * 50 KG</option>
+            <option>SUPER BLUE * 50 KG</option>
+            <option>NPK 20-20-20 * 50 KG</option>
+            <option>PAPA SIERRA * 50 KG</option>
         </select>
 
         <button type="button" id="btnMostrar">Mostrar Tabla</button>
     </div>
 
     <div id="contenedorTablas"></div>
+
+    <!-- TABLA RESUMEN -->
+    <div class="bloque">
+        <div class="resumen-header">
+            <h3>STOCK DE ENVASES VACIOS CERES PERÚ</h3>
+            <button id="btnExportarExcel" class="btn-excel">📊 Exportar a Excel</button>
+        </div>
+        
+        <p>Resumen de stock actualizado de todos los productos</p>
+        
+        <div id="tablaResumenContainer">
+            <p>Cargando resumen de stock...</p>
+        </div>
+    </div>
 
 </div>
 
