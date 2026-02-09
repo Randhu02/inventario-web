@@ -603,3 +603,115 @@ table th {
         justify-content: center;
     }
 }
+
+
+/* ========== ESTILOS PARA MODAL DE EDITAR ========== */
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 30px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    border: 2px solid #0d6efd;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #0d6efd;
+    background: none;
+    padding: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    margin: 0;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: #dc3545;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.modal-buttons button {
+    flex: 1;
+    margin-top: 0;
+}
+
+.btn-guardar {
+    background-color: #28a745 !important;
+}
+
+.btn-guardar:hover {
+    background-color: #218838 !important;
+}
+
+.btn-cancelar {
+    background-color: #6c757d !important;
+}
+
+.btn-cancelar:hover {
+    background-color: #545b62 !important;
+}
+
+/* Botón Editar (amarillo) */
+.btn-editar {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+    margin-right: 5px;
+}
+
+.btn-editar:hover {
+    background-color: #e0a800 !important;
+}
+
+/* Para botones en tabla */
+table .btn-editar {
+    padding: 5px 10px;
+    font-size: 0.85rem;
+    margin-top: 0;
+    margin-right: 5px;
+}
+
+/* Asegurar que los botones en tabla sean del mismo tamaño */
+table .btn-editar, 
+table .btn-eliminar {
+    width: 70px;
+    text-align: center;
+}

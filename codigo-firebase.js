@@ -20,7 +20,7 @@ try {
 const database = firebase.database();
 const auth = firebase.auth();
 
-// Mapeo de productos
+// Mapeo de productos (con los 4 nuevos)
 const productosItem = {
     "UREA FERTI * 50 KG.": 1,
     "FOSFATO DIAMONICO FERTI * 50 KG.": 2,
@@ -81,7 +81,7 @@ function actualizarInterfazSegunModo() {
         infoModo.innerHTML = `
             <div class="admin-message">
                 ✅ <strong>Estás en modo Administrador</strong><br>
-                Puedes agregar nuevos registros y eliminar existentes.
+                Puedes agregar, editar y eliminar registros.
             </div>
         `;
     } else {
@@ -107,14 +107,69 @@ function formatearNumero(num) {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-// Formatear fecha
+// ========== FUNCIÓN FORMATEAR FECHA CORREGIDA ==========
+
+// SOLUCIÓN DEFINITIVA para el problema de fecha
 function formatearFecha(fechaStr) {
-    const fecha = new Date(fechaStr);
-    return fecha.toLocaleDateString('es-PE', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
+    if (!fechaStr) return '-';
+    
+    try {
+        // Para evitar problemas de huso horario
+        // Dividir la fecha en partes YYYY-MM-DD
+        const partes = fechaStr.split('-');
+        if (partes.length === 3) {
+            // Crear fecha en UTC para evitar desplazamiento
+            const fechaUTC = new Date(Date.UTC(
+                parseInt(partes[0]), // año
+                parseInt(partes[1]) - 1, // mes (0-indexado)
+                parseInt(partes[2]) // día
+            ));
+            
+            return fechaUTC.toLocaleDateString('es-PE', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                timeZone: 'UTC' // Forzar zona horaria UTC
+            });
+        }
+        
+        // Si no es formato YYYY-MM-DD, intentar parsear normal
+        const fecha = new Date(fechaStr);
+        if (isNaN(fecha.getTime())) {
+            return fechaStr; // Devolver original si no se puede parsear
+        }
+        
+        // Ajustar para zona horaria local
+        return fecha.toLocaleDateString('es-PE', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+        
+    } catch (error) {
+        console.error("Error formateando fecha:", fechaStr, error);
+        return fechaStr; // Devolver original en caso de error
+    }
+}
+
+// Función para convertir fecha al formato input date (YYYY-MM-DD)
+function fechaParaInputDate(fechaStr) {
+    if (!fechaStr) return '';
+    
+    try {
+        const fecha = new Date(fechaStr);
+        if (isNaN(fecha.getTime())) {
+            return fechaStr;
+        }
+        
+        // Ajustar para zona horaria
+        const fechaAjustada = new Date(fecha.getTime() - (fecha.getTimezoneOffset() * 60000));
+        return fechaAjustada.toISOString().split('T')[0];
+        
+    } catch (error) {
+        console.error("Error convirtiendo fecha para input:", fechaStr, error);
+        return fechaStr;
+    }
 }
 
 // ==================== AUTENTICACIÓN ====================
@@ -247,9 +302,27 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // 9. Botón Exportar a Excel
     document.getElementById("btnExportarExcel").addEventListener("click", exportarExcel);
+    
+    // ========== EVENTOS PARA MODAL DE EDICIÓN ==========
+    
+    // 10. Botón cerrar modal
+    document.getElementById("btnCerrarModal").addEventListener("click", cerrarModalEditar);
+    
+    // 11. Botón cancelar edición
+    document.getElementById("btnCancelarEditar").addEventListener("click", cerrarModalEditar);
+    
+    // 12. Formulario de edición
+    document.getElementById("formEditar").addEventListener("submit", guardarEdicion);
+    
+    // 13. Cerrar modal al hacer clic fuera
+    document.getElementById("modalEditar").addEventListener("click", function(e) {
+        if (e.target.id === "modalEditar") {
+            cerrarModalEditar();
+        }
+    });
 });
 
-// ==================== FUNCIÓN MOSTRAR TABLA ====================
+// ==================== FUNCIÓN MOSTRAR TABLA (ACTUALIZADA) ====================
 
 function mostrarTabla() {
     console.log("Función mostrarTabla() ejecutada - Modo:", modoActual);
@@ -327,6 +400,9 @@ function mostrarTabla() {
             if (modoActual === 'admin' && usuarioAutenticado) {
                 fila += `
                 <td ${claseFila ? 'class="ultimo-stock"' : ''}>
+                    <button class="btn-editar" data-item="${itemProducto}" data-index="${index}">
+                        Editar
+                    </button>
                     <button class="btn-eliminar" data-item="${itemProducto}" data-index="${index}">
                         Eliminar
                     </button>
@@ -343,8 +419,16 @@ function mostrarTabla() {
 
         contenedor.appendChild(tabla);
         
-        // Agregar eventos a botones eliminar
+        // Agregar eventos a los botones (solo en modo admin)
         if (modoActual === 'admin' && usuarioAutenticado) {
+            document.querySelectorAll(".btn-editar").forEach(btn => {
+                btn.addEventListener("click", function() {
+                    const itemProd = this.getAttribute("data-item");
+                    const idx = this.getAttribute("data-index");
+                    mostrarModalEditar(parseInt(itemProd), parseInt(idx));
+                });
+            });
+            
             document.querySelectorAll(".btn-eliminar").forEach(btn => {
                 btn.addEventListener("click", function() {
                     const itemProd = this.getAttribute("data-item");
@@ -380,6 +464,116 @@ function eliminarRegistro(itemProducto, index) {
 
         database.ref("inventario/" + itemProducto).set(movimientos, () => {
             mostrarTabla();
+            cargarResumenStock(); // Actualizar resumen
+        });
+    });
+}
+
+// ==================== FUNCIONES PARA EDITAR REGISTROS ====================
+
+// Variables para edición
+let registroEditando = null;
+
+// Mostrar modal para editar
+function mostrarModalEditar(itemProducto, index) {
+    if (modoActual !== 'admin' || !usuarioAutenticado) {
+        alert("Debe estar en modo Administrador para editar registros");
+        return;
+    }
+    
+    registroEditando = { itemProducto, index };
+    
+    // Obtener los datos del registro
+    database.ref("inventario/" + itemProducto).once("value", snapshot => {
+        const movimientos = snapshot.val() || [];
+        
+        if (index >= movimientos.length) {
+            alert("Registro no encontrado");
+            return;
+        }
+        
+        const registro = movimientos[index];
+        
+        // Llenar el formulario
+        document.getElementById("editItemProducto").value = itemProducto;
+        document.getElementById("editIndex").value = index;
+        document.getElementById("editDescripcion").value = registro.descripcion;
+        
+        // Fecha corregida para el input date
+        document.getElementById("editFecha").value = fechaParaInputDate(registro.fecha);
+        
+        document.getElementById("editOperacion").value = registro.operacion;
+        document.getElementById("editIngreso").value = registro.ingreso;
+        document.getElementById("editSalida").value = registro.salida;
+        document.getElementById("editObservaciones").value = registro.observaciones || '';
+        
+        // Mostrar modal
+        document.getElementById("modalEditar").style.display = 'flex';
+    });
+}
+
+// Cerrar modal
+function cerrarModalEditar() {
+    document.getElementById("modalEditar").style.display = 'none';
+    registroEditando = null;
+}
+
+// Guardar cambios editados
+function guardarEdicion(e) {
+    e.preventDefault();
+    
+    if (!registroEditando) return;
+    
+    const itemProducto = parseInt(document.getElementById("editItemProducto").value);
+    const index = parseInt(document.getElementById("editIndex").value);
+    const fecha = document.getElementById("editFecha").value;
+    const operacion = document.getElementById("editOperacion").value;
+    const ingreso = Number(document.getElementById("editIngreso").value);
+    const salida = Number(document.getElementById("editSalida").value);
+    const observaciones = document.getElementById("editObservaciones").value;
+    const descripcion = document.getElementById("editDescripcion").value;
+    
+    database.ref("inventario/" + itemProducto).once("value", snapshot => {
+        let movimientos = snapshot.val() || [];
+        
+        if (index >= movimientos.length) {
+            alert("Error: registro no encontrado");
+            return;
+        }
+        
+        // Guardar el usuario original
+        const usuarioOriginal = movimientos[index].usuario;
+        
+        // Actualizar el registro
+        movimientos[index] = {
+            ...movimientos[index],
+            descripcion,
+            fecha,
+            operacion,
+            ingreso,
+            salida,
+            observaciones: observaciones || '',
+            usuario: usuarioOriginal,
+            editadoPor: usuarioAutenticado.email,
+            editadoEn: firebase.database.ServerValue.TIMESTAMP
+        };
+        
+        // Recalcular TODOS los stocks desde este punto en adelante
+        let stock = 0;
+        if (index > 0) {
+            stock = movimientos[index - 1].stock;
+        }
+        
+        for (let i = index; i < movimientos.length; i++) {
+            stock = stock + movimientos[i].ingreso - movimientos[i].salida;
+            movimientos[i].stock = stock;
+        }
+        
+        // Guardar en Firebase
+        database.ref("inventario/" + itemProducto).set(movimientos, () => {
+            alert("✅ Registro actualizado correctamente!");
+            cerrarModalEditar();
+            mostrarTabla(); // Refrescar la tabla
             cargarResumenStock(); // Actualizar resumen
         });
     });
@@ -560,7 +754,7 @@ async function exportarExcel() {
                 movimientos.forEach(mov => {
                     datosProducto.push([
                         mov.item,
-                        mov.fecha,
+                        formatearFecha(mov.fecha), // Fecha formateada
                         mov.operacion,
                         mov.ingreso,
                         mov.salida,

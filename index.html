@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Ceres Peru SAC - Inventario</title>
+    <title>Ceres Peru SAC - Stock Envases</title>
     <link rel="stylesheet" href="estilos.css">
     
     <!-- Firebase v9 compact -->
@@ -19,7 +19,7 @@
 <div id="inicioContainer" style="display: flex;">
     <div class="modo-container">
         <div class="modo-box">
-            <h2>Ceres Peru SAC - Inventario</h2>
+            <h2>Ceres Peru SAC - Stock Envases</h2>
             
             <div class="modo-opcion">
                 <h3>👁️ Modo Vista</h3>
@@ -75,7 +75,7 @@
         </div>
     </div>
 
-    <h1>Ceres Peru SAC - Inventario</h1>
+    <h1>Ceres Peru SAC - Stock Envases</h1>
 
     <!-- FORMULARIO DE INVENTARIO (solo visible en modo admin) -->
     <div id="formContainer" style="display: none;">
@@ -158,6 +158,57 @@
         </div>
     </div>
 
+</div>
+
+<!-- MODAL PARA EDITAR REGISTRO -->
+<div id="modalEditar" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>✏️ Editar Registro</h3>
+            <button class="modal-close" id="btnCerrarModal">&times;</button>
+        </div>
+        
+        <form id="formEditar">
+            <input type="hidden" id="editItemProducto">
+            <input type="hidden" id="editIndex">
+            
+            <label>Descripción:</label>
+            <select id="editDescripcion" disabled>
+                <option value="">Seleccione</option>
+                <option>UREA FERTI * 50 KG.</option>
+                <option>FOSFATO DIAMONICO FERTI * 50 KG.</option>
+                <option>SULFATO DE AMONIO FERTI * 50 KG.</option>
+                <option>ADITIVO MARRON - BOLSAS * 20 KG.</option>
+                <option>NITRATO DE AMONIO * 50 KG.</option>
+                <option>NITRATO DE AMONIO * 50 KG. - POLIPROPILENO</option>
+                <option>CLORURO DE POTASIO *50 KG.</option>
+                <option>NITRO S PREMIUM AMARILLO * 50 KG</option>
+                <option>SUPER BLUE * 50 KG</option>
+                <option>NPK 20-20-20 * 50 KG</option>
+                <option>PAPA SIERRA * 50 KG</option>
+            </select>
+
+            <label>Fecha:</label>
+            <input type="date" id="editFecha" required>
+
+            <label>Operación:</label>
+            <input type="text" id="editOperacion" placeholder="Ej: Ingreso de almacén" required>
+
+            <label>Ingreso:</label>
+            <input type="number" id="editIngreso" value="0" min="0">
+
+            <label>Salida:</label>
+            <input type="number" id="editSalida" value="0" min="0">
+
+            <label>Observaciones:</label>
+            <textarea id="editObservaciones" placeholder="Observaciones adicionales (opcional)" rows="3"></textarea>
+
+            <div class="modal-buttons">
+                <button type="button" id="btnCancelarEditar" class="btn-cancelar">Cancelar</button>
+                <button type="submit" class="btn-guardar">Guardar Cambios</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script src="codigo-firebase.js"></script>
