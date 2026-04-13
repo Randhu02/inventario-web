@@ -16,6 +16,7 @@ git add .
 git commit -m "Fix Firebase init duplication"
 git push
 
+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
 
 
 usuario: admin@ceres.com
@@ -25,6 +26,9 @@ contraseña: admin123
 
 admin@ceres.com / Admin123* (administrador)
 
-almacen@ceres.com / Almacen123* (personal de almacén)
+sdiazc@ceres.com / sdiazc123* (personal de almacén)
 
 ventas@ceres.com / Ventas123* (personal de ventas)
+
+
+git remote set-url origin https://Randhu02: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@github.com/Randhu02/inventario-web.git

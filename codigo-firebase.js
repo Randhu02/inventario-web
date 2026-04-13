@@ -20,7 +20,7 @@ try {
 const database = firebase.database();
 const auth = firebase.auth();
 
-// Mapeo de productos (con los 4 nuevos)
+// Mapeo de productos
 const productosItem = {
     "UREA FERTI * 50 KG.": 1,
     "FOSFATO DIAMONICO FERTI * 50 KG.": 2,
@@ -39,6 +39,9 @@ const productosItem = {
 let usuarioAutenticado = null;
 let modoActual = 'vista';
 let stockResumen = {};
+let sortableInstance = null;
+let movimientosActuales = [];
+let itemProductoActual = null;
 
 // ==================== FUNCIONES DE VISUALIZACIÓN ====================
 
@@ -61,7 +64,7 @@ function mostrarApp(modo) {
     document.getElementById('mainContainer').style.display = 'block';
     
     actualizarInterfazSegunModo();
-    cargarResumenStock(); // Cargar resumen al mostrar app
+    cargarResumenStock();
 }
 
 function actualizarInterfazSegunModo() {
@@ -70,6 +73,7 @@ function actualizarInterfazSegunModo() {
     const btnLogout = document.getElementById('btnLogout');
     const btnCambiar = document.getElementById('btnCambiarModo');
     const infoModo = document.getElementById('infoModo');
+    const btnRecalcular = document.getElementById('btnRecalcular');
     
     if (modoActual === 'admin' && usuarioAutenticado) {
         userEmail.textContent = `Modo: Administrador (${usuarioAutenticado.email})`;
@@ -98,48 +102,44 @@ function actualizarInterfazSegunModo() {
             </div>
         `;
     }
+    
+    if (btnRecalcular) {
+        btnRecalcular.style.display = 'none';
+    }
 }
 
 // ==================== FUNCIONES DE UTILIDAD ====================
 
-// Formatear números con separador de miles
 function formatearNumero(num) {
+    if (num === undefined || num === null) return '0';
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-// ========== FUNCIÓN FORMATEAR FECHA CORREGIDA ==========
-
-// SOLUCIÓN DEFINITIVA para el problema de fecha
 function formatearFecha(fechaStr) {
     if (!fechaStr) return '-';
     
     try {
-        // Para evitar problemas de huso horario
-        // Dividir la fecha en partes YYYY-MM-DD
         const partes = fechaStr.split('-');
         if (partes.length === 3) {
-            // Crear fecha en UTC para evitar desplazamiento
             const fechaUTC = new Date(Date.UTC(
-                parseInt(partes[0]), // año
-                parseInt(partes[1]) - 1, // mes (0-indexado)
-                parseInt(partes[2]) // día
+                parseInt(partes[0]),
+                parseInt(partes[1]) - 1,
+                parseInt(partes[2])
             ));
             
             return fechaUTC.toLocaleDateString('es-PE', {
                 day: '2-digit',
                 month: '2-digit',
                 year: 'numeric',
-                timeZone: 'UTC' // Forzar zona horaria UTC
+                timeZone: 'UTC'
             });
         }
         
-        // Si no es formato YYYY-MM-DD, intentar parsear normal
         const fecha = new Date(fechaStr);
         if (isNaN(fecha.getTime())) {
-            return fechaStr; // Devolver original si no se puede parsear
+            return fechaStr;
         }
         
-        // Ajustar para zona horaria local
         return fecha.toLocaleDateString('es-PE', {
             day: '2-digit',
             month: '2-digit',
@@ -148,11 +148,10 @@ function formatearFecha(fechaStr) {
         
     } catch (error) {
         console.error("Error formateando fecha:", fechaStr, error);
-        return fechaStr; // Devolver original en caso de error
+        return fechaStr;
     }
 }
 
-// Función para convertir fecha al formato input date (YYYY-MM-DD)
 function fechaParaInputDate(fechaStr) {
     if (!fechaStr) return '';
     
@@ -162,7 +161,6 @@ function fechaParaInputDate(fechaStr) {
             return fechaStr;
         }
         
-        // Ajustar para zona horaria
         const fechaAjustada = new Date(fecha.getTime() - (fecha.getTimezoneOffset() * 60000));
         return fechaAjustada.toISOString().split('T')[0];
         
@@ -172,163 +170,218 @@ function fechaParaInputDate(fechaStr) {
     }
 }
 
-// ==================== AUTENTICACIÓN ====================
+// ==================== FUNCIÓN PARA RECALCULAR STOCK ====================
 
-auth.onAuthStateChanged((user) => {
-    usuarioAutenticado = user;
-    
-    if (user && modoActual === 'admin') {
-        mostrarApp('admin');
+async function recalcularStock(itemProducto, nuevosMovimientos) {
+    if (!confirm("⚠️ ¿Estás seguro de recalcular el stock?\n\nEsto actualizará todos los stocks según el orden actual de las filas. ¿Deseas continuar?")) {
+        return false;
     }
-});
-
-// ==================== EVENTOS DEL DOM ====================
-
-document.addEventListener("DOMContentLoaded", function() {
-    console.log("DOM completamente cargado");
     
-    // 1. Botón Modo Vista
-    document.getElementById("btnModoVista").addEventListener("click", function() {
-        modoActual = 'vista';
-        usuarioAutenticado = null;
-        mostrarApp('vista');
+    // IMPORTANTE: Mantener el orden que el usuario estableció (NO reordenar por fecha)
+    // Recalcular stocks en el orden actual (el que el usuario arrastró)
+    let stockAcumulado = 0;
+    const movimientosRecalculados = nuevosMovimientos.map((mov, idx) => {
+        stockAcumulado = stockAcumulado + mov.ingreso - mov.salida;
+        // Actualizar el stock y guardar el ordenManual
+        const movActualizado = { 
+            ...mov, 
+            stock: stockAcumulado,
+            ordenManual: idx,  // Guardar el orden manual
+            fechaOriginal: mov.fecha  // Preservar fecha original
+        };
+        console.log(`${idx + 1}. ${mov.fecha} - ${mov.operacion} | Ingreso: ${mov.ingreso} | Salida: ${mov.salida} | Stock: ${stockAcumulado}`);
+        return movActualizado;
     });
     
-    // 2. Botón Modo Admin
-    document.getElementById("btnModoAdmin").addEventListener("click", function() {
-        mostrarLogin();
-    });
-    
-    // 3. Volver al inicio
-    document.getElementById("btnVolverInicio").addEventListener("click", function() {
-        mostrarInicio();
-    });
-    
-    // 4. Formulario de Login
-    document.getElementById("loginForm").addEventListener("submit", function(e) {
-        e.preventDefault();
+    // Guardar en Firebase (manteniendo el orden manual)
+    try {
+        await database.ref("inventario/" + itemProducto).set(movimientosRecalculados);
+        alert("✅ Stock recalculado correctamente!");
         
-        const email = document.getElementById("loginEmail").value;
-        const password = document.getElementById("loginPassword").value;
-        
-        auth.signInWithEmailAndPassword(email, password)
-            .then(() => {
-                document.getElementById("loginError").style.display = 'none';
-                modoActual = 'admin';
-                mostrarApp('admin');
-            })
-            .catch((error) => {
-                document.getElementById("loginError").textContent = error.message;
-                document.getElementById("loginError").style.display = 'block';
-            });
-    });
-    
-    // 5. Botón Cambiar Modo
-    document.getElementById("btnCambiarModo").addEventListener("click", function() {
-        if (modoActual === 'admin') {
-            auth.signOut();
-            modoActual = 'vista';
-            usuarioAutenticado = null;
-            mostrarApp('vista');
-        } else {
-            mostrarLogin();
-        }
-    });
-    
-    // 6. Botón Logout
-    document.getElementById("btnLogout").addEventListener("click", function() {
-        if (confirm("¿Cerrar sesión de administrador?")) {
-            auth.signOut();
-            modoActual = 'vista';
-            mostrarApp('vista');
-        }
-    });
-    
-    // 7. Formulario de Inventario
-    document.getElementById("formInventario").addEventListener("submit", function(e) {
-        e.preventDefault();
-        
-        if (modoActual !== 'admin' || !usuarioAutenticado) {
-            alert("Debe estar en modo Administrador para agregar registros");
-            return;
-        }
-        
-        const descripcion = document.getElementById("descripcion").value;
-        const fecha = document.getElementById("fecha").value;
-        const operacion = document.getElementById("operacion").value;
-        const ingreso = Number(document.getElementById("ingreso").value);
-        const salida = Number(document.getElementById("salida").value);
-        const observaciones = document.getElementById("observaciones").value;
-        const itemProducto = productosItem[descripcion];
+        // Recargar la tabla manteniendo el orden manual
+        await mostrarTablaConOrdenManual(itemProducto, movimientosRecalculados);
+        cargarResumenStock();
+        return true;
+    } catch (error) {
+        alert("❌ Error al guardar: " + error.message);
+        return false;
+    }
+}
 
-        if (!itemProducto) {
-            alert("Por favor seleccione una descripción válida");
-            return;
-        }
-
-        database.ref("inventario/" + itemProducto).once("value", snapshot => {
-            const movimientos = snapshot.val() || [];
-
-            let ultimoStock = 0;
-            if (movimientos.length > 0) {
-                ultimoStock = movimientos[movimientos.length - 1].stock;
+// Nueva función para mostrar tabla respetando el orden manual
+async function mostrarTablaConOrdenManual(itemProducto, movimientosGuardados) {
+    const descripcion = Object.keys(productosItem).find(key => productosItem[key] === itemProducto);
+    const contenedor = document.getElementById("contenedorTablas");
+    const btnRecalcular = document.getElementById("btnRecalcular");
+    
+    if (btnRecalcular) {
+        btnRecalcular.style.display = 'none';
+    }
+    
+    if (!contenedor) return;
+    
+    contenedor.innerHTML = "";
+    
+    // Usar los movimientos ya guardados (con el orden manual)
+    let movimientos = [...movimientosGuardados];
+    
+    // Ordenar por ordenManual si existe, si no, por fecha descendente
+    if (movimientos[0] && movimientos[0].ordenManual !== undefined) {
+        // Ordenar por ordenManual (el orden que el usuario estableció)
+        movimientos.sort((a, b) => (a.ordenManual || 0) - (b.ordenManual || 0));
+    } else {
+        // Si no hay ordenManual, ordenar por fecha descendente
+        movimientos.sort((a, b) => {
+            const fechaA = new Date(a.fecha);
+            const fechaB = new Date(b.fecha);
+            if (fechaA.getTime() !== fechaB.getTime()) {
+                return fechaB - fechaA;
             }
-
-            const stock = ultimoStock + ingreso - salida;
-
-            movimientos.push({
-                item: itemProducto,
-                descripcion,
-                fecha,
-                operacion,
-                ingreso,
-                salida,
-                stock,
-                observaciones: observaciones || '',
-                usuario: usuarioAutenticado.email,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-
-            database.ref("inventario/" + itemProducto).set(movimientos, () => {
-                alert("Registro agregado correctamente!");
-                document.getElementById("formInventario").reset();
-                cargarResumenStock(); // Actualizar resumen
+            const tsA = a.timestamp || 0;
+            const tsB = b.timestamp || 0;
+            return tsA - tsB;
+        });
+    }
+    
+    const titulo = document.createElement("h3");
+    titulo.textContent = `${descripcion} (Orden manual - arrastra las filas)`;
+    contenedor.appendChild(titulo);
+    
+    if (modoActual === 'admin' && usuarioAutenticado) {
+        const instruccion = document.createElement("p");
+        instruccion.innerHTML = "💡 <strong>Modo administrador:</strong> Arrastra las filas usando las ⋮⋮ para reordenar, luego haz clic en 'Recalcular Stock'";
+        instruccion.style.backgroundColor = "#e7f3ff";
+        instruccion.style.padding = "8px";
+        instruccion.style.borderRadius = "5px";
+        instruccion.style.fontSize = "14px";
+        contenedor.appendChild(instruccion);
+    }
+    
+    const tabla = document.createElement("table");
+    tabla.border = "1";
+    tabla.style.width = "100%";
+    tabla.style.borderCollapse = "collapse";
+    
+    let cabecera = `
+        <thead>
+            <tr>
+                <th style="width: 40px;">⋮⋮</th>
+                <th>Item</th>
+                <th>Fecha</th>
+                <th>Operación</th>
+                <th>Ingreso</th>
+                <th>Salida</th>
+                <th>Stock</th>
+                <th>Observaciones</th>`;
+    
+    if (modoActual === 'admin' && usuarioAutenticado) {
+        cabecera += `<th>Acción</th>`;
+    }
+    
+    cabecera += `</tr></thead><tbody></tbody>`;
+    tabla.innerHTML = cabecera;
+    
+    const tbody = tabla.querySelector("tbody");
+    
+    movimientos.forEach((item, index) => {
+        const esPrimero = (index === 0);
+        const claseDestacada = esPrimero ? 'ultimo-stock' : '';
+        
+        let fila = `
+            <td style="cursor: grab; text-align: center; ${claseDestacada ? 'background-color: #e8f5e9;' : ''}">⋮⋮</td>
+            <td class="numero-formateado ${claseDestacada}">${item.item}</td>
+            <td ${claseDestacada ? 'class="ultimo-stock"' : ''}>${formatearFecha(item.fecha)}</td>
+            <td ${claseDestacada ? 'class="ultimo-stock"' : ''}>${item.operacion}</td>
+            <td class="numero-formateado ${claseDestacada}">${formatearNumero(item.ingreso)}</td>
+            <td class="numero-formateado ${claseDestacada}">${formatearNumero(item.salida)}</td>
+            <td class="numero-formateado ${claseDestacada}"><strong>${formatearNumero(item.stock)}</strong></td>
+            <td ${claseDestacada ? 'class="ultimo-stock"' : ''}>${item.observaciones || '-'}</td>`;
+        
+        if (modoActual === 'admin' && usuarioAutenticado) {
+            fila += `
+            <td ${claseDestacada ? 'class="ultimo-stock"' : ''}>
+                <button class="btn-editar" data-item="${itemProducto}" data-index="${index}">
+                    Editar
+                </button>
+                <button class="btn-eliminar" data-item="${itemProducto}" data-index="${index}">
+                    Eliminar
+                </button>
+            </td>`;
+        }
+        
+        const tr = document.createElement("tr");
+        if (claseDestacada) tr.className = claseDestacada;
+        tr.setAttribute('data-original-item', JSON.stringify(item));
+        tr.innerHTML = fila;
+        tbody.appendChild(tr);
+    });
+    
+    contenedor.appendChild(tabla);
+    
+    if (modoActual === 'admin' && usuarioAutenticado) {
+        activarDragAndDrop();
+        if (btnRecalcular) {
+            btnRecalcular.style.display = 'inline-block';
+        }
+    }
+    
+    // Eventos de botones
+    if (modoActual === 'admin' && usuarioAutenticado) {
+        document.querySelectorAll(".btn-editar").forEach(btn => {
+            btn.addEventListener("click", function() {
+                const itemProd = this.getAttribute("data-item");
+                const idx = this.getAttribute("data-index");
+                mostrarModalEditar(parseInt(itemProd), parseInt(idx));
             });
         });
-    });
+        
+        document.querySelectorAll(".btn-eliminar").forEach(btn => {
+            btn.addEventListener("click", function() {
+                const itemProd = this.getAttribute("data-item");
+                const idx = this.getAttribute("data-index");
+                eliminarRegistro(parseInt(itemProd), parseInt(idx));
+            });
+        });
+    }
+}
 
-    // 8. Botón Mostrar Tabla
-    document.getElementById("btnMostrar").addEventListener("click", mostrarTabla);
+// ==================== ACTIVAR DRAG & DROP ====================
+
+function activarDragAndDrop() {
+    const tbody = document.querySelector("#contenedorTablas table tbody");
+    if (!tbody) return;
     
-    // 9. Botón Exportar a Excel
-    document.getElementById("btnExportarExcel").addEventListener("click", exportarExcel);
+    if (sortableInstance) {
+        sortableInstance.destroy();
+    }
     
-    // ========== EVENTOS PARA MODAL DE EDICIÓN ==========
-    
-    // 10. Botón cerrar modal
-    document.getElementById("btnCerrarModal").addEventListener("click", cerrarModalEditar);
-    
-    // 11. Botón cancelar edición
-    document.getElementById("btnCancelarEditar").addEventListener("click", cerrarModalEditar);
-    
-    // 12. Formulario de edición
-    document.getElementById("formEditar").addEventListener("submit", guardarEdicion);
-    
-    // 13. Cerrar modal al hacer clic fuera
-    document.getElementById("modalEditar").addEventListener("click", function(e) {
-        if (e.target.id === "modalEditar") {
-            cerrarModalEditar();
+    sortableInstance = new Sortable(tbody, {
+        animation: 300,
+        handle: 'td:first-child',
+        ghostClass: 'sortable-ghost',
+        dragClass: 'sortable-drag',
+        onEnd: function() {
+            const btnRecalcular = document.getElementById("btnRecalcular");
+            if (btnRecalcular) {
+                btnRecalcular.style.display = 'inline-block';
+                btnRecalcular.style.animation = 'pulse 0.5s';
+            }
         }
     });
-});
+}
 
-// ==================== FUNCIÓN MOSTRAR TABLA (ACTUALIZADA) ====================
+// ==================== FUNCIÓN MOSTRAR TABLA (UNIFICADA) ====================
 
 function mostrarTabla() {
     console.log("Función mostrarTabla() ejecutada - Modo:", modoActual);
     
     const descripcion = document.getElementById("productoFiltro").value;
     const contenedor = document.getElementById("contenedorTablas");
+    const btnRecalcular = document.getElementById("btnRecalcular");
+    
+    if (btnRecalcular) {
+        btnRecalcular.style.display = 'none';
+    }
     
     if (!contenedor) {
         console.error("ERROR: contenedorTablas no encontrado");
@@ -343,9 +396,10 @@ function mostrarTabla() {
     }
 
     const itemProducto = productosItem[descripcion];
+    itemProductoActual = itemProducto;
 
     database.ref("inventario/" + itemProducto).once("value", snapshot => {
-        const movimientos = snapshot.val();
+        let movimientos = snapshot.val();
 
         if (!movimientos || movimientos.length === 0) {
             contenedor.innerHTML = `
@@ -356,17 +410,61 @@ function mostrarTabla() {
             return;
         }
 
+        if (!Array.isArray(movimientos)) {
+            movimientos = Object.values(movimientos);
+        }
+        
+        movimientosActuales = [...movimientos];
+        
+        // ========== ORDENAR: PRIORIDAD AL ORDEN MANUAL ==========
+        // Verificar si existe ordenManual en los registros
+        const tieneOrdenManual = movimientos.some(m => m.ordenManual !== undefined);
+
+        if (tieneOrdenManual) {
+            // Ordenar por ordenManual (el orden que el usuario estableció)
+            movimientos.sort((a, b) => (a.ordenManual || 0) - (b.ordenManual || 0));
+            console.log("📌 Usando orden manual para mostrar");
+        } else {
+            // Si no hay ordenManual, ordenar por fecha ascendente (antiguo primero)
+            movimientos.sort((a, b) => {
+                const fechaA = new Date(a.fecha);
+                const fechaB = new Date(b.fecha);
+                if (fechaA.getTime() !== fechaB.getTime()) {
+                    return fechaA - fechaB;  // ← ASCENDENTE (antiguo primero)
+                }
+                const tsA = a.timestamp || 0;
+                const tsB = b.timestamp || 0;
+                return tsA - tsB;
+            });
+            console.log("📅 Usando orden por fecha ascendente para mostrar");
+        }
+
         const titulo = document.createElement("h3");
-        titulo.textContent = descripcion;
+        titulo.textContent = tieneOrdenManual ? 
+            `${descripcion} (Orden manual - arrastra las filas)` : 
+            `${descripcion} (Historial - más reciente primero)`;
         contenedor.appendChild(titulo);
+        
+        // Instrucción para modo admin
+        if (modoActual === 'admin' && usuarioAutenticado) {
+            const instruccion = document.createElement("p");
+            instruccion.innerHTML = "💡 <strong>Modo administrador:</strong> Arrastra las filas usando las ⋮⋮ para reordenar, luego haz clic en 'Recalcular Stock'";
+            instruccion.style.backgroundColor = "#e7f3ff";
+            instruccion.style.padding = "8px";
+            instruccion.style.borderRadius = "5px";
+            instruccion.style.fontSize = "14px";
+            contenedor.appendChild(instruccion);
+        }
 
         const tabla = document.createElement("table");
         tabla.border = "1";
+        tabla.style.width = "100%";
+        tabla.style.borderCollapse = "collapse";
         
-        // Cabecera de tabla (SIN columna Usuario)
         let cabecera = `
             <thead>
                 <tr>
+                    <th style="width: 40px;">⋮⋮</th>
                     <th>Item</th>
                     <th>Fecha</th>
                     <th>Operación</th>
@@ -379,27 +477,28 @@ function mostrarTabla() {
             cabecera += `<th>Acción</th>`;
         }
         
-        cabecera += `</tr></thead><tbody></tbody>`;
+        cabecera += `<tr></thead><tbody></tbody>`;
         tabla.innerHTML = cabecera;
 
         const tbody = tabla.querySelector("tbody");
 
         movimientos.forEach((item, index) => {
-            const esUltimoRegistro = index === movimientos.length - 1;
-            const claseFila = esUltimoRegistro ? 'ultimo-stock' : '';
+            const esUltimo = (index === movimientos.length - 1);
+            const claseDestacada = esUltimo ? 'ultimo-stock' : '';
             
             let fila = `
-                <td class="numero-formateado ${claseFila}">${item.item}</td>
-                <td ${claseFila ? 'class="ultimo-stock"' : ''}>${formatearFecha(item.fecha)}</td>
-                <td ${claseFila ? 'class="ultimo-stock"' : ''}>${item.operacion}</td>
-                <td class="numero-formateado ${claseFila}">${formatearNumero(item.ingreso)}</td>
-                <td class="numero-formateado ${claseFila}">${formatearNumero(item.salida)}</td>
-                <td class="numero-formateado ${claseFila}"><strong>${formatearNumero(item.stock)}</strong></td>
-                <td ${claseFila ? 'class="ultimo-stock"' : ''}>${item.observaciones || '-'}</td>`;
+                <td style="cursor: grab; text-align: center; ${claseDestacada ? 'background-color: #e8f5e9;' : ''}">⋮⋮</td>
+                <td class="numero-formateado ${claseDestacada}">${item.item}</td>
+                <td ${claseDestacada ? 'class="ultimo-stock"' : ''}>${formatearFecha(item.fecha)}</td>
+                <td ${claseDestacada ? 'class="ultimo-stock"' : ''}>${item.operacion}</td>
+                <td class="numero-formateado ${claseDestacada}">${formatearNumero(item.ingreso)}</td>
+                <td class="numero-formateado ${claseDestacada}">${formatearNumero(item.salida)}</td>
+                <td class="numero-formateado ${claseDestacada}"><strong>${formatearNumero(item.stock)}</strong></td>
+                <td ${claseDestacada ? 'class="ultimo-stock"' : ''}>${item.observaciones || '-'}</td>`;
             
             if (modoActual === 'admin' && usuarioAutenticado) {
                 fila += `
-                <td ${claseFila ? 'class="ultimo-stock"' : ''}>
+                <td ${claseDestacada ? 'class="ultimo-stock"' : ''}>
                     <button class="btn-editar" data-item="${itemProducto}" data-index="${index}">
                         Editar
                     </button>
@@ -409,17 +508,24 @@ function mostrarTabla() {
                 </td>`;
             }
             
-            // NOTA: Se eliminó la columna Usuario completamente
-            
             const tr = document.createElement("tr");
-            if (claseFila) tr.className = claseFila;
+            if (claseDestacada) tr.className = claseDestacada;
+            tr.setAttribute('data-original-item', JSON.stringify(item));
             tr.innerHTML = fila;
             tbody.appendChild(tr);
         });
 
         contenedor.appendChild(tabla);
         
-        // Agregar eventos a los botones (solo en modo admin)
+        // Activar drag & drop solo en modo admin
+        if (modoActual === 'admin' && usuarioAutenticado) {
+            activarDragAndDrop();
+            if (btnRecalcular) {
+                btnRecalcular.style.display = 'inline-block';
+            }
+        }
+        
+        // Eventos de botones
         if (modoActual === 'admin' && usuarioAutenticado) {
             document.querySelectorAll(".btn-editar").forEach(btn => {
                 btn.addEventListener("click", function() {
@@ -455,7 +561,6 @@ function eliminarRegistro(itemProducto, index) {
 
         movimientos.splice(index, 1);
 
-        // Recalcular stock
         let stock = 0;
         movimientos = movimientos.map(m => {
             stock = stock + m.ingreso - m.salida;
@@ -464,17 +569,15 @@ function eliminarRegistro(itemProducto, index) {
 
         database.ref("inventario/" + itemProducto).set(movimientos, () => {
             mostrarTabla();
-            cargarResumenStock(); // Actualizar resumen
+            cargarResumenStock();
         });
     });
 }
 
 // ==================== FUNCIONES PARA EDITAR REGISTROS ====================
 
-// Variables para edición
 let registroEditando = null;
 
-// Mostrar modal para editar
 function mostrarModalEditar(itemProducto, index) {
     if (modoActual !== 'admin' || !usuarioAutenticado) {
         alert("Debe estar en modo Administrador para editar registros");
@@ -483,7 +586,6 @@ function mostrarModalEditar(itemProducto, index) {
     
     registroEditando = { itemProducto, index };
     
-    // Obtener los datos del registro
     database.ref("inventario/" + itemProducto).once("value", snapshot => {
         const movimientos = snapshot.val() || [];
         
@@ -494,31 +596,24 @@ function mostrarModalEditar(itemProducto, index) {
         
         const registro = movimientos[index];
         
-        // Llenar el formulario
         document.getElementById("editItemProducto").value = itemProducto;
         document.getElementById("editIndex").value = index;
         document.getElementById("editDescripcion").value = registro.descripcion;
-        
-        // Fecha corregida para el input date
         document.getElementById("editFecha").value = fechaParaInputDate(registro.fecha);
-        
         document.getElementById("editOperacion").value = registro.operacion;
         document.getElementById("editIngreso").value = registro.ingreso;
         document.getElementById("editSalida").value = registro.salida;
         document.getElementById("editObservaciones").value = registro.observaciones || '';
         
-        // Mostrar modal
         document.getElementById("modalEditar").style.display = 'flex';
     });
 }
 
-// Cerrar modal
 function cerrarModalEditar() {
     document.getElementById("modalEditar").style.display = 'none';
     registroEditando = null;
 }
 
-// Guardar cambios editados
 function guardarEdicion(e) {
     e.preventDefault();
     
@@ -541,10 +636,8 @@ function guardarEdicion(e) {
             return;
         }
         
-        // Guardar el usuario original
         const usuarioOriginal = movimientos[index].usuario;
         
-        // Actualizar el registro
         movimientos[index] = {
             ...movimientos[index],
             descripcion,
@@ -558,7 +651,6 @@ function guardarEdicion(e) {
             editadoEn: firebase.database.ServerValue.TIMESTAMP
         };
         
-        // Recalcular TODOS los stocks desde este punto en adelante
         let stock = 0;
         if (index > 0) {
             stock = movimientos[index - 1].stock;
@@ -569,12 +661,11 @@ function guardarEdicion(e) {
             movimientos[i].stock = stock;
         }
         
-        // Guardar en Firebase
         database.ref("inventario/" + itemProducto).set(movimientos, () => {
             alert("✅ Registro actualizado correctamente!");
             cerrarModalEditar();
-            mostrarTabla(); // Refrescar la tabla
-            cargarResumenStock(); // Actualizar resumen
+            mostrarTabla();
+            cargarResumenStock();
         });
     });
 }
@@ -592,7 +683,6 @@ function cargarResumenStock() {
     
     container.innerHTML = '<p>Cargando resumen...</p>';
     
-    // Obtener todos los productos
     const promesas = Object.keys(productosItem).map(descripcion => {
         const itemProducto = productosItem[descripcion];
         return database.ref("inventario/" + itemProducto).once("value")
@@ -614,24 +704,15 @@ function cargarResumenStock() {
     
     Promise.all(promesas)
         .then(datos => {
-            // Ordenar por item
             datos.sort((a, b) => a.item - b.item);
-            
-            // Guardar para exportar
             stockResumen = datos;
             
-            // Generar tabla
             const tabla = document.createElement("table");
             tabla.innerHTML = `
                 <thead>
-                    <tr>
-                        <th>ITEM</th>
-                        <th>DESCRIPCIÓN DEL ARTICULO</th>
-                        <th>STOCK ACTUALIZADO</th>
-                    </tr>
+                    <tr><th>ITEM</th><th>DESCRIPCIÓN DEL ARTICULO</th><th>STOCK ACTUALIZADO</th></tr>
                 </thead>
-                <tbody>
-                </tbody>
+                <tbody></tbody>
             `;
             
             const tbody = tabla.querySelector("tbody");
@@ -648,7 +729,6 @@ function cargarResumenStock() {
                 tbody.appendChild(fila);
             });
             
-            // Fila de total
             const filaTotal = document.createElement("tr");
             filaTotal.className = "resumen-total";
             filaTotal.innerHTML = `
@@ -666,32 +746,27 @@ function cargarResumenStock() {
         });
 }
 
-// ==================== EXPORTAR A EXCEL COMPLETO ====================
+// ==================== EXPORTAR A EXCEL ====================
 
 async function exportarExcel() {
     console.log("Exportando a Excel completo...");
     
     try {
-        // Mostrar mensaje de carga
         const btnExportar = document.getElementById("btnExportarExcel");
         const textoOriginal = btnExportar.textContent;
         btnExportar.textContent = "⏳ Generando Excel...";
         btnExportar.disabled = true;
         
-        // Crear libro de trabajo
         const wb = XLSX.utils.book_new();
         
-        // ========== HOJA 1: RESUMEN ==========
+        // Hoja RESUMEN
         const datosResumen = [];
-        
-        // Título
         datosResumen.push(["STOCK DE ENVASES VACIOS CERES PERÚ"]);
         datosResumen.push([]);
         datosResumen.push(["Fecha de exportación:", new Date().toLocaleString('es-PE')]);
         datosResumen.push([]);
         datosResumen.push(["ITEM", "DESCRIPCIÓN DEL ARTICULO", "STOCK ACTUALIZADO"]);
         
-        // Obtener datos del resumen desde Firebase
         let totalStock = 0;
         const productosKeys = Object.keys(productosItem);
         
@@ -708,31 +783,17 @@ async function exportarExcel() {
             }
             
             totalStock += stockActual;
-            datosResumen.push([
-                itemProducto,
-                descripcion,
-                stockActual
-            ]);
+            datosResumen.push([itemProducto, descripcion, stockActual]);
         }
         
-        // Línea en blanco y total
         datosResumen.push([]);
         datosResumen.push(["TOTAL GENERAL", "", totalStock]);
         
-        // Crear hoja de resumen
         const wsResumen = XLSX.utils.aoa_to_sheet(datosResumen);
-        
-        // Ajustar ancho de columnas para resumen
-        wsResumen['!cols'] = [
-            {wch: 8},  // ITEM
-            {wch: 60}, // DESCRIPCIÓN
-            {wch: 18}  // STOCK
-        ];
-        
-        // Agregar hoja al libro con nombre "RESUMEN"
+        wsResumen['!cols'] = [{wch: 8}, {wch: 60}, {wch: 18}];
         XLSX.utils.book_append_sheet(wb, wsResumen, "RESUMEN");
         
-        // ========== HOJAS POR PRODUCTO ==========
+        // Hojas por producto
         for (let i = 0; i < productosKeys.length; i++) {
             const descripcion = productosKeys[i];
             const itemProducto = i + 1;
@@ -741,20 +802,21 @@ async function exportarExcel() {
             const movimientos = snapshot.val() || [];
             
             const datosProducto = [];
-            
-            // Título del producto
             datosProducto.push([`INVENTARIO: ${descripcion}`]);
             datosProducto.push([]);
             
             if (movimientos.length > 0) {
-                // Encabezados
                 datosProducto.push(["ITEM", "FECHA", "OPERACIÓN", "INGRESO", "SALIDA", "STOCK", "OBSERVACIONES", "USUARIO"]);
                 
-                // Datos de movimientos
-                movimientos.forEach(mov => {
+                // Ordenar ascendente para el Excel (histórico)
+                const movimientosOrdenados = [...movimientos].sort((a, b) => {
+                    return new Date(a.fecha) - new Date(b.fecha);
+                });
+                
+                movimientosOrdenados.forEach(mov => {
                     datosProducto.push([
                         mov.item,
-                        formatearFecha(mov.fecha), // Fecha formateada
+                        formatearFecha(mov.fecha),
                         mov.operacion,
                         mov.ingreso,
                         mov.salida,
@@ -764,97 +826,55 @@ async function exportarExcel() {
                     ]);
                 });
                 
-                // Línea en blanco y stock final
                 datosProducto.push([]);
                 const ultimoStock = movimientos[movimientos.length - 1].stock;
                 datosProducto.push(["STOCK FINAL:", "", "", "", "", ultimoStock, "", ""]);
-                
             } else {
                 datosProducto.push(["NO HAY REGISTROS PARA ESTE PRODUCTO"]);
             }
             
-            // Crear hoja del producto
             const wsProducto = XLSX.utils.aoa_to_sheet(datosProducto);
-            
-            // Ajustar ancho de columnas para producto
-            wsProducto['!cols'] = [
-                {wch: 8},   // ITEM
-                {wch: 12},  // FECHA
-                {wch: 25},  // OPERACIÓN
-                {wch: 10},  // INGRESO
-                {wch: 10},  // SALIDA
-                {wch: 10},  // STOCK
-                {wch: 30},  // OBSERVACIONES
-                {wch: 25}   // USUARIO
-            ];
-            
-            // Nombre de hoja (ITEM 1, ITEM 2, etc.)
-            const nombreHoja = `ITEM ${itemProducto}`;
-            
-            // Agregar hoja al libro
-            XLSX.utils.book_append_sheet(wb, wsProducto, nombreHoja);
+            wsProducto['!cols'] = [{wch: 8}, {wch: 12}, {wch: 25}, {wch: 10}, {wch: 10}, {wch: 10}, {wch: 30}, {wch: 25}];
+            XLSX.utils.book_append_sheet(wb, wsProducto, `ITEM ${itemProducto}`);
         }
         
-        // ========== HOJA DE ÍNDICE ==========
+        // Hoja ÍNDICE
         const datosIndice = [];
         datosIndice.push(["REPORTE COMPLETO DE INVENTARIO - CERES PERÚ SAC"]);
         datosIndice.push([]);
         datosIndice.push(["Fecha de generación:", new Date().toLocaleString('es-PE')]);
         datosIndice.push([]);
-        datosIndice.push(["Este archivo contiene las siguientes hojas:"]);
-        datosIndice.push([]);
         datosIndice.push(["HOJA", "CONTENIDO", "CANTIDAD DE REGISTROS"]);
-        
-        // RESUMEN
         datosIndice.push(["RESUMEN", "Resumen general de stock", productosKeys.length]);
         
-        // Productos
         for (let i = 0; i < productosKeys.length; i++) {
             const descripcion = productosKeys[i];
             const itemProducto = i + 1;
             const snapshot = await database.ref("inventario/" + itemProducto).once("value");
             const movimientos = snapshot.val() || [];
-            
-            datosIndice.push([
-                `ITEM ${itemProducto}`,
-                descripcion,
-                movimientos.length
-            ]);
+            datosIndice.push([`ITEM ${itemProducto}`, descripcion, movimientos.length]);
         }
         
         const wsIndice = XLSX.utils.aoa_to_sheet(datosIndice);
-        wsIndice['!cols'] = [
-            {wch: 10},   // HOJA
-            {wch: 60},   // CONTENIDO
-            {wch: 20}    // REGISTROS
-        ];
-        
+        wsIndice['!cols'] = [{wch: 10}, {wch: 60}, {wch: 20}];
         XLSX.utils.book_append_sheet(wb, wsIndice, "ÍNDICE");
         
-        // ========== GENERAR ARCHIVO ==========
         const fecha = new Date();
         const fechaStr = fecha.toISOString().slice(0,10).replace(/-/g, '');
-        const horaStr = fecha.getHours().toString().padStart(2, '0') + 
-                       fecha.getMinutes().toString().padStart(2, '0');
-        
+        const horaStr = fecha.getHours().toString().padStart(2, '0') + fecha.getMinutes().toString().padStart(2, '0');
         const nombreArchivo = `Inventario_Completo_Ceres_${fechaStr}_${horaStr}.xlsx`;
         
-        // Exportar archivo
         XLSX.writeFile(wb, nombreArchivo);
         
-        // Restaurar botón
         btnExportar.textContent = textoOriginal;
         btnExportar.disabled = false;
         
-        // Mensaje de confirmación
-        const cantidadHojas = 1 + productosKeys.length + 1; // RESUMEN + Productos + ÍNDICE
-        alert(`✅ Archivo "${nombreArchivo}" exportado exitosamente.\n\nContiene ${cantidadHojas} hojas:\n• RESUMEN: Stock actual de todos los productos\n• ITEM 1-${productosKeys.length}: Tablas completas por producto\n• ÍNDICE: Resumen del archivo`);
+        alert(`✅ Archivo "${nombreArchivo}" exportado exitosamente!`);
         
     } catch (error) {
         console.error("Error al exportar Excel:", error);
         alert("❌ Error al exportar a Excel: " + error.message);
         
-        // Restaurar botón en caso de error
         const btnExportar = document.getElementById("btnExportarExcel");
         if (btnExportar) {
             btnExportar.textContent = "📊 Exportar a Excel";
@@ -862,6 +882,176 @@ async function exportarExcel() {
         }
     }
 }
+
+// ==================== EVENTOS DEL DOM ====================
+
+document.addEventListener("DOMContentLoaded", function() {
+    console.log("DOM completamente cargado");
+    
+    document.getElementById("btnModoVista").addEventListener("click", function() {
+        modoActual = 'vista';
+        usuarioAutenticado = null;
+        mostrarApp('vista');
+    });
+    
+    document.getElementById("btnModoAdmin").addEventListener("click", function() {
+        mostrarLogin();
+    });
+    
+    document.getElementById("btnVolverInicio").addEventListener("click", function() {
+        mostrarInicio();
+    });
+    
+    document.getElementById("loginForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById("loginEmail").value;
+        const password = document.getElementById("loginPassword").value;
+        
+        auth.signInWithEmailAndPassword(email, password)
+            .then(() => {
+                document.getElementById("loginError").style.display = 'none';
+                modoActual = 'admin';
+                mostrarApp('admin');
+            })
+            .catch((error) => {
+                document.getElementById("loginError").textContent = error.message;
+                document.getElementById("loginError").style.display = 'block';
+            });
+    });
+    
+    document.getElementById("btnCambiarModo").addEventListener("click", function() {
+        if (modoActual === 'admin') {
+            auth.signOut();
+            modoActual = 'vista';
+            usuarioAutenticado = null;
+            mostrarApp('vista');
+        } else {
+            mostrarLogin();
+        }
+    });
+    
+    document.getElementById("btnLogout").addEventListener("click", function() {
+        if (confirm("¿Cerrar sesión de administrador?")) {
+            auth.signOut();
+            modoActual = 'vista';
+            mostrarApp('vista');
+        }
+    });
+    
+    // Formulario de Inventario
+    document.getElementById("formInventario").addEventListener("submit", function(e) {
+        e.preventDefault();
+        
+        if (modoActual !== 'admin' || !usuarioAutenticado) {
+            alert("Debe estar en modo Administrador para agregar registros");
+            return;
+        }
+        
+        const descripcion = document.getElementById("descripcion").value;
+        const fecha = document.getElementById("fecha").value;
+        const operacion = document.getElementById("operacion").value;
+        const ingreso = Number(document.getElementById("ingreso").value);
+        const salida = Number(document.getElementById("salida").value);
+        const observaciones = document.getElementById("observaciones").value;
+        const itemProducto = productosItem[descripcion];
+
+        if (!itemProducto) {
+            alert("Por favor seleccione una descripción válida");
+            return;
+        }
+
+        database.ref("inventario/" + itemProducto).once("value", snapshot => {
+            let movimientos = snapshot.val() || [];
+            
+            const nuevoRegistro = {
+                item: itemProducto,
+                descripcion,
+                fecha,
+                operacion,
+                ingreso,
+                salida,
+                stock: 0,
+                observaciones: observaciones || '',
+                usuario: usuarioAutenticado.email,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+            
+            movimientos.push(nuevoRegistro);
+            
+            // Orden ascendente para cálculo correcto
+            movimientos.sort((a, b) => {
+                const fechaA = new Date(a.fecha);
+                const fechaB = new Date(b.fecha);
+                return fechaA - fechaB;
+            });
+            
+            let stockAcumulado = 0;
+            movimientos = movimientos.map(mov => {
+                stockAcumulado = stockAcumulado + mov.ingreso - mov.salida;
+                return { ...mov, stock: stockAcumulado };
+            });
+            
+            database.ref("inventario/" + itemProducto).set(movimientos, () => {
+                alert("✅ Registro agregado correctamente!");
+                document.getElementById("formInventario").reset();
+                cargarResumenStock();
+                mostrarTabla();
+            });
+        });
+    });
+    
+    document.getElementById("btnMostrar").addEventListener("click", mostrarTabla);
+    document.getElementById("btnExportarExcel").addEventListener("click", exportarExcel);
+    
+    // Botón Recalcular Stock
+    const btnRecalcular = document.getElementById("btnRecalcular");
+    if (btnRecalcular) {
+        btnRecalcular.addEventListener("click", async function() {
+            if (!itemProductoActual) return;
+            
+            const tbody = document.querySelector("#contenedorTablas table tbody");
+            if (!tbody) return;
+            
+            const filas = tbody.querySelectorAll("tr");
+            const nuevoOrden = [];
+            
+            // Obtener el orden actual de las filas (después de arrastrar)
+            for (let i = 0; i < filas.length; i++) {
+                const fila = filas[i];
+                const datosOriginales = fila.getAttribute('data-original-item');
+                if (datosOriginales) {
+                    nuevoOrden.push(JSON.parse(datosOriginales));
+                }
+            }
+            
+            if (nuevoOrden.length > 0) {
+                await recalcularStock(itemProductoActual, nuevoOrden);
+            }
+        });
+    }
+    
+    // Eventos modal edición
+    document.getElementById("btnCerrarModal").addEventListener("click", cerrarModalEditar);
+    document.getElementById("btnCancelarEditar").addEventListener("click", cerrarModalEditar);
+    document.getElementById("formEditar").addEventListener("submit", guardarEdicion);
+    
+    document.getElementById("modalEditar").addEventListener("click", function(e) {
+        if (e.target.id === "modalEditar") {
+            cerrarModalEditar();
+        }
+    });
+});
+
+// ==================== AUTENTICACIÓN ====================
+
+auth.onAuthStateChanged((user) => {
+    usuarioAutenticado = user;
+    
+    if (user && modoActual === 'admin') {
+        mostrarApp('admin');
+    }
+});
 
 
 

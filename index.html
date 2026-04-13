@@ -12,6 +12,9 @@
     
     <!-- Librería para exportar a Excel -->
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    
+    <!-- Librería para drag & drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 </head>
 <body>
 
@@ -124,22 +127,27 @@
             <!-- Mensaje dinámico según el modo -->
         </div>
 
-        <select id="productoFiltro">
-            <option value="">Seleccione un producto</option>
-            <option>UREA FERTI * 50 KG.</option>
-            <option>FOSFATO DIAMONICO FERTI * 50 KG.</option>
-            <option>SULFATO DE AMONIO FERTI * 50 KG.</option>
-            <option>ADITIVO MARRON - BOLSAS * 20 KG.</option>
-            <option>NITRATO DE AMONIO * 50 KG.</option>
-            <option>NITRATO DE AMONIO * 50 KG. - POLIPROPILENO</option>
-            <option>CLORURO DE POTASIO *50 KG.</option>
-            <option>NITRO S PREMIUM AMARILLO * 50 KG</option>
-            <option>SUPER BLUE * 50 KG</option>
-            <option>NPK 20-20-20 * 50 KG</option>
-            <option>PAPA SIERRA * 50 KG</option>
-        </select>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <select id="productoFiltro" style="flex: 1; min-width: 200px;">
+                <option value="">Seleccione un producto</option>
+                <option>UREA FERTI * 50 KG.</option>
+                <option>FOSFATO DIAMONICO FERTI * 50 KG.</option>
+                <option>SULFATO DE AMONIO FERTI * 50 KG.</option>
+                <option>ADITIVO MARRON - BOLSAS * 20 KG.</option>
+                <option>NITRATO DE AMONIO * 50 KG.</option>
+                <option>NITRATO DE AMONIO * 50 KG. - POLIPROPILENO</option>
+                <option>CLORURO DE POTASIO *50 KG.</option>
+                <option>NITRO S PREMIUM AMARILLO * 50 KG</option>
+                <option>SUPER BLUE * 50 KG</option>
+                <option>NPK 20-20-20 * 50 KG</option>
+                <option>PAPA SIERRA * 50 KG</option>
+            </select>
 
-        <button type="button" id="btnMostrar">Mostrar Tabla</button>
+            <button type="button" id="btnMostrar">📋 Mostrar Tabla</button>
+            <button type="button" id="btnRecalcular" style="display: none; background-color: #dc3545; color: white;">
+                🔄 Recalcular Stock
+            </button>
+        </div>
     </div>
 
     <div id="contenedorTablas"></div>
